@@ -56,10 +56,10 @@ data = {
         "Data Annotator",
         "Business Analyst",
         "Machine Learning Engineer",
-        "SQL Deeveloper",
+        "SQL Developer",
         "AI Trainer",
         "Research Analyst",
-        "Data Emtry Specialist",
+        "Data Entry Specialist",
         "BI Analyst",
         "Software Engineer",
         "Statistician",
@@ -81,7 +81,7 @@ data = {
         "Financial Analyst",
         "Project coordinator",
         "Content Writer",
-        "Custormer Support Agent",
+        "Customer Support Agent",
         "SEO Specialist",
         "BI Developer",
         "Operations Analyst"
@@ -96,7 +96,7 @@ data = {
         "Data Science",
         "Programming",
         "Data Annotation",
-        "Data Annalytics",
+        "Data Analytics",
         "Data Entry",
         "Data Analytics",
         "Programming",
@@ -161,7 +161,7 @@ data = {
         "Remote - Worldwide",
         "Remote - Kenya",
         "Remote - Africa",
-        "Remote - worldwide",
+        "Remote - Worldwide",
         "Remote - Kenya",
         "Remote - Worldwide",
         "Remote - Africa",
@@ -218,8 +218,8 @@ st.sidebar.header("Salary Filter")
 salary_range = st.sidebar.slider(
     "Select Salary Range (USD)",
     min_value=0,
-    max_value=2000,
-    value=(0, 2000),
+    max_value=int(df["Salary (USD)"].max()),
+    value=(0, int(df["Salary (USD)"].max())),
     key="salary_range"
 )
 
@@ -459,29 +459,36 @@ def generate_pdf(dataframe):
     )
 
     if total_jobs > 0:
-     highest_job = dataframe.loc[
-        dataframe["Salary (USD)"].idxmax()
-    ]
+        highest_job = dataframe.loc[
+            dataframe["Salary (USD)"].idxmax()
+        ]
 
-    lowest_job = dataframe.loc[
-        dataframe["Salary (USD)"].idxmin()
-    ]
+        lowest_job = dataframe.loc[
+            dataframe["Salary (USD)"].idxmin()
+        ]
 
-    elements.append(
-        Paragraph(
-            f"Highest Paying Job: {highest_job['Job Title']} "
-            f"(${highest_job['Salary (USD)']:,})",
-            styles["Normal"]
+        elements.append(
+            Paragraph(
+                f"Highest Paying Job: {highest_job['Job Title']} "
+                f"(${highest_job['Salary (USD)']:,})",
+                styles["Normal"]
+            )
         )
-    )
 
-    elements.append(
-        Paragraph(
-            f"Lowest Paying Job: {lowest_job['Job Title']} "
-            f"(${lowest_job['Salary (USD)']:,})",
-            styles["Normal"]
+        elements.append(
+            Paragraph(
+                f"Lowest Paying Job: {lowest_job['Job Title']} "
+                f"(${lowest_job['Salary (USD)']:,})",
+                styles["Normal"]
+            )
         )
-    )
+    else:
+        elements.append(
+            Paragraph("No jobs match the selected filters.", styles["Normal"])
+        )
+
+        styles["Normal"]
+
 
     elements.append(Spacer(1, 10))
 
@@ -521,25 +528,36 @@ def generate_pdf(dataframe):
 
     elements.append(Spacer(1, 10))
 
+    if total_jobs > 0:
+        salary_min = dataframe["Salary (USD)"].min()
+        salary_max = dataframe["Salary (USD)"].max()
+
+        summary_text = (
+            f"Executive Summary: This report contains {total_jobs} "
+            f"remote job opportunities, with an average salary of "
+            f"${average_salary:,.2f}. Salaries range from "
+            f"${salary_min:,.0f} to ${salary_max:,.0f}."
+        )
+    else:
+        summary_text = (
+            "Executive Summary: No jobs match the selected filters."
+        )
+
     elements.append(
-    Paragraph(
-        f"Executive Summary: This report contains {total_jobs} "
-        f"remote job opportunities, with an average salary of "
-        f"${average_salary:,.2f}. Salaries range from "
-        f"${dataframe['Salary (USD)'].min():,.0f} to "
-        f"${dataframe['Salary (USD)'].max():,.0f}.",
-        styles["Normal"]
-    )
+        Paragraph(summary_text, styles["Normal"])
     )
 
     if not dataframe.empty:
-        popular_category = dataframe["Category"].mode()[0]
+       popular_category = dataframe["Category"].mode()[0]
+       category_text = f"Most Popular Job Category: {popular_category}"
+    else:
+       category_text = "Most Popular Job Category: Not available"
 
     elements.append(
-        Paragraph(
-            f"Most Popular Job Category: {popular_category}",
-            styles["Normal"]
-        )
+    Paragraph(
+        category_text,
+        styles["Normal"]
+    )
     )
 
     elements.append(Spacer(1, 15))
@@ -612,39 +630,21 @@ st.download_button(
 st.success("Dashboard is running successfully!")
 
 # Skills Demand Chart
-st.subheader("🧠 Skills in Demand")
 
-skills_data = {
-    "Skill": ["Python", "SQL", "Excel", "Power BI", "Machine Learning"],
-    "Number of Jobs": [45, 38, 30, 25, 20]
-}
+# Job Categories Bar Chart
+st.subheader("📊 Job Categories Breakdown")
 
-skills_df = pd.DataFrame(skills_data)
-
-st.bar_chart(
-    skills_df.set_index("Skill")["Number of Jobs"]
-)
-
-# Job Category Pie Chart
-st.subheader("🥧 Job Categories Breakdown")
-
-import matplotlib.pyplot as plt                                                                                                                                                                                                                                                                                                                                
-
-fig, ax = plt.subplots()
-
-ax.pie(
-    category_counts,
-    labels=category_counts.index,
-    autopct="%1.1f%%"
-)
-
-ax.set_title("Job Categories")
-
-st.pyplot(fig)
+if not category_counts.empty:
+    st.bar_chart(
+        category_counts.sort_values(ascending=True),
+        horizontal=True
+    )
+else:
+    st.info("No job categories available for the selected filters.")                                                                                                                                                                                                                                                                                                                             
 
 st.subheader("💰 Salary Comparison by Job")
 
-salary_chart = df.groupby("Job Title")["Salary (USD)"].mean()
+salary_chart = filtered_df.groupby("Job Title")["Salary (USD)"].mean()
 
 st.bar_chart(salary_chart)
 
@@ -694,9 +694,34 @@ job_skills = {
     "Virtual Assistant": ["Communication", "Organization", "Excel", "Time Management"]
 }
 
+st.subheader("🧠Skills in Demand")
+
+skill_counts = {}
+
+for job_title in filtered_df["Job Title"].unique():
+    for skill in job_skills.get(job_title, []):
+        skill_counts[skill] = skill_counts.get(skill, 0) + 1
+
+if skill_counts:
+    skills_df = pd.DataFrame(
+        list(skill_counts.items()),
+        columns=["Skill", "Number of Jobs"]
+    )
+
+    skills_df = skills_df.sort_values(
+        "Number of Jobs",
+        ascending=False
+    )
+
+    st.bar_chart(
+        skills_df.set_index("Skill")["Number of Jobs"]
+    )
+else:
+    st.info("No skills data available for the selected jobs.")
+
 st.write("### 🧠 Skills Required")
 
-for skill in job_skills[selected_job]:
+for skill in job_skills.get(selected_job, ["Skills not yet listed for thos job"]):
     st.write(f"✅ {skill}")
 
     # Real Job Search Platforms
@@ -969,6 +994,7 @@ if st.session_state.applications:
             st.session_state.applications[selected_index]["Job Title"] = edited_job_title
             st.session_state.applications[selected_index]["Company"] = edited_company
             st.session_state.applications[selected_index]["Date Applied"] = edited_date
+            save_applications(st.session_state.applications)
             st.success("Job details updated!")
             st.rerun()
         else:

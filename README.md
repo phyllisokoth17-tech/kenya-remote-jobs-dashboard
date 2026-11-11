@@ -1,3 +1,5 @@
+![Dashboard Overview] (dashboard-overview.png)
+
 🇰🇪 Kenya Remote Jobs Analytics Dashboard
 
 A Python-based interactive dashboard built with Streamlit to explore remote job opportunities and manage job applications.
